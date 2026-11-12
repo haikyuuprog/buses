@@ -27,6 +27,10 @@
     vertical-align: top;
   }
 
+	td:last-child {
+    text-align: center;
+	}
+
   /* Мобильные экраны: до 900 px */
   @media (max-width: 900px) {
     body {
@@ -65,7 +69,7 @@ h3 {
       <th>№</th>
       <th>Остановка >> направление</th>
       <th>Время</th>
-      <th>Через</th>
+      <th>Минуты</th>
     </tr>
   </thead>
   <tbody id="rows"></tbody>
@@ -146,7 +150,7 @@ async function getDeparture(bus) {
       hour: "2-digit",
       minute: "2-digit"
     }),
-    minutes: `${minutes} мин.`
+    minutes: minutes
   };
 }
 
