@@ -1,127 +1,134 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="ru">
 <head>
-	<meta http-equiv="content-type"
-	content="text/html"; charset=utf-8"/>
-	<title>Автобусы Нюрнберга</title>
-	
-	<style>
-	.zeile div {
-	padding: 20px;
-	border: 2px solid green;
-	height: 50px;
-	width: 50px;
-	float: left;
-	display: flex;	
-	justify-content: center;
- 	align-items: center;
-	font-size: 32px;
-	}
-
-	.zeile {
-	clear: both;
-	}
-	.zeile1 div {
-	padding: 10px;
-	border: 1px solid black;
-	height: 50px;
-	width: 260px;
-	float: left;
-	display: flex;	
-	justify-content: left;
- 	align-items: center;
-	font-size: 24px;
-	}
-
-	.zeile1 {
-	clear: both;
-	}
-	
-	</style>
+  <meta charset="utf-8">
+  <title>Автобусы Нюрнберга</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    table { border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+  </style>
 </head>
-
 <body>
-	  <h1>Автобусы Нюрнберга</h1>
-	<br>
-	<div>
-	<div class="zeile">
-	<div id="0_0">0_0</div>
-	<div id="1_0">1_0</div>
-	<div id="2_0">2_0</div>
-	</div>
 
-	<div class="zeile">
-	<div id="0_1">0_1</div>
-	<div id="1_1">1_1</div>
-	<div id="2_1">2_1</div>
-	</div>
+<h1>Минут до отправления следующего автобуса</h1>
 
-	<div class="zeile">
-	<div id="0_2">0_2</div>
-	<div id="1_2">1_2</div>
-	<div id="2_2">2_2</div>
-	</div>
-	<div class="zeile1"><div id="3_3"">скоро выходить</div></div>
-	</div>
+<table>
+  <thead>
+    <tr>
+      <th>Автобус</th>
+      <th>Остановка</th>
+      <th>Направление</th>
+      <th>Уходит в</th>
+      <th>Через</th>
+    </tr>
+  </thead>
+  <tbody id="rows"></tbody>
+</table>
 
-	<script>
-	
-	const STOP_ID = "510"; // Nürnberg Hauptbahnhof
-	const UPDATE_INTERVAL_MS = 30_000; // 30 секунд
+<script>
+const buses = [
+  {
+    line: "65",
+    stopId: "341",
+    stopName: "Schoppershof (Nürnberg)",
+    direction: "Röthenbach"
+  },
+  {
+    line: "65",
+    stopId: "365",
+    stopName: "Heinemannbrücke (Nürnberg)",
+    direction: "Nordostbahnhof"
+  },
+  {
+    line: "37",
+    stopId: "353",
+    stopName: "Tellstr. (Nürnberg)",
+    direction: "Rathaus"
+  },
+  {
+    line: "47",
+    stopId: "353",
+    stopName: "Tellstr. (Nürnberg)",
+    direction: "Rathaus"
+  },
+  {
+    line: "46",
+    stopId: "352",
+    stopName: "Friedenstr. (Nürnberg)",
+    direction: "Rathaus"
+  }
+];
 
-	async function loadBuses() {
-	const url =
-    	`https://start.vag.de/dm/api/v1/abfahrten/VGN/${STOP_ID}` +
-    	`?product=Bus&timespan=30&limitcount=10`;
+async function getDeparture(bus) {
+  const url =
+    `https://start.vag.de/dm/api/v1/abfahrten/VGN/${bus.stopId}` +
+    `?product=Bus&timespan=90&limitcount=100`;
 
-  	const response = await fetch(url);
+  const response = await fetch(url);
 
-  	if (!response.ok) {
-  	  throw new Error(`Ошибка API: ${response.status}`);
-  	}
+  if (!response.ok) {
+    throw new Error(`Ошибка API: ${response.status}`);
+  }
 
-  	const data = await response.json();
-  	renderBuses(data.Abfahrten);
-	}
+  const data = await response.json();
 
-	function renderBuses(departures) {
-  	const list = document.getElementById("departures");
-  	list.innerHTML = "";
+  const departure = data.Abfahrten.find((item) =>
+    item.Linienname === bus.line &&
+    item.Richtungstext === bus.direction
+  );
 
-  	departures.forEach((bus) => {
-    	const item = document.createElement("li");
+  if (!departure) {
+    return {
+      ...bus,
+      time: "Не найдено",
+      minutes: "—"
+    };
+  }
 
-    	const scheduled = new Date(bus.AbfahrtszeitSoll);
-    	const realtime = bus.AbfahrtszeitIst
-      	? new Date(bus.AbfahrtszeitIst)
-      	: scheduled;
+  const departureTime = new Date(
+    departure.AbfahrtszeitIst || departure.AbfahrtszeitSoll
+  );
 
-    	const minutes = Math.max(
-      	0,
-      	Math.round((realtime - Date.now()) / 60000)
-    	);
+  const minutes = Math.max(
+    0,
+    Math.round((departureTime - Date.now()) / 60000)
+  );
 
-    	item.textContent =
-      	`Автобус ${bus.Linienname} → ${bus.Richtungstext} — ` +
-      	`через ${minutes} мин.`;
+  return {
+    ...bus,
+    time: departureTime.toLocaleTimeString("de-DE", {
+      hour: "2-digit",
+      minute: "2-digit"
+    }),
+    minutes: `${minutes} мин.`
+  };
+}
 
-    	list.appendChild(item);
-  	});
-	}
+async function updateTable() {
+  const rows = document.getElementById("rows");
+  rows.innerHTML = "";
 
-	// Первая загрузка сразу
-	loadBuses().catch(console.error);
+  for (const bus of buses) {
+    const result = await getDeparture(bus);
 
-	// Затем обновление каждые 30 секунд
-	const updateTimer = setInterval(() => {
-  	loadBuses().catch(console.error);
-	}, UPDATE_INTERVAL_MS);
+    const row = document.createElement("tr");
 
-	// Остановка обновления при закрытии/уходе со страницы
-	window.addEventListener("beforeunload", () => {
-  	clearInterval(updateTimer);
-	});
+    row.innerHTML = `
+      <td>${result.line}</td>
+      <td>${result.stopName}</td>
+      <td>${result.direction}</td>
+      <td>${result.time}</td>
+      <td>${result.minutes}</td>
+    `;
 
+    rows.appendChild(row);
+  }
+}
+
+updateTable();
+setInterval(updateTable, 30000);
 </script>
+
 </body>
 </html>
