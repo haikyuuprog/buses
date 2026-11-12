@@ -68,8 +68,7 @@
   <thead>
     <tr>
       <th>Номер</th>
-      <th>Остановка</th>
-      <th>Направление</th>
+      <th>Остановка >> Направление</th>
       <th>Уходит в</th>
       <th>Через</th>
     </tr>
@@ -82,31 +81,31 @@ const buses = [
   {
     line: "65",
     stopId: "341",
-    stopName: "Schoppershof (Nürnberg)",
+    stopName: "Schoppershof",
     direction: "Röthenbach"
   },
   {
     line: "65",
     stopId: "365",
-    stopName: "Heinemannbrücke (Nürnberg)",
+    stopName: "Heinemannbrücke",
     direction: "Nordostbahnhof"
   },
   {
     line: "37",
     stopId: "353",
-    stopName: "Tellstr. (Nürnberg)",
+    stopName: "Tellstraße",
     direction: "Rathaus"
   },
   {
     line: "47",
     stopId: "353",
-    stopName: "Tellstr. (Nürnberg)",
+    stopName: "Tellstraße",
     direction: "Rathaus"
   },
   {
     line: "46",
     stopId: "352",
-    stopName: "Friedenstr. (Nürnberg)",
+    stopName: "Friedenstraße",
     direction: "Rathaus"
   }
 ];
@@ -167,8 +166,7 @@ async function updateTable() {
 
     row.innerHTML = `
       <td>${result.line}</td>
-      <td>${result.stopName}</td>
-      <td>${result.direction}</td>
+      <td>${result.stopName} &gt;&gt; ${result.direction}</td>
       <td>${result.time}</td>
       <td>${result.minutes}</td>
     `;
