@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type"
+	content="text/html"; charset=utf-8"/>
+	<title>Автобусы Нюрнберга</title>
+	
+	<style>
+	.zeile div {
+	padding: 20px;
+	border: 2px solid green;
+	height: 50px;
+	width: 50px;
+	float: left;
+	display: flex;	
+	justify-content: center;
+ 	align-items: center;
+	font-size: 32px;
+	}
+
+	.zeile {
+	clear: both;
+	}
+	.zeile1 div {
+	padding: 10px;
+	border: 1px solid black;
+	height: 50px;
+	width: 260px;
+	float: left;
+	display: flex;	
+	justify-content: left;
+ 	align-items: center;
+	font-size: 24px;
+	}
+
+	.zeile1 {
+	clear: both;
+	}
+	
+	</style>
+</head>
+
+<body>
+	  <h1>Автобусы Нюрнберга</h1>
+	<br>
+	<div>
+	<div class="zeile">
+	<div id="0_0">0_0</div>
+	<div id="1_0">1_0</div>
+	<div id="2_0">2_0</div>
+	</div>
+
+	<div class="zeile">
+	<div id="0_1">0_1</div>
+	<div id="1_1">1_1</div>
+	<div id="2_1">2_1</div>
+	</div>
+
+	<div class="zeile">
+	<div id="0_2">0_2</div>
+	<div id="1_2">1_2</div>
+	<div id="2_2">2_2</div>
+	</div>
+	<div class="zeile1"><div id="3_3"">скоро выходить</div></div>
+	</div>
+
+	<script>
+	
+	const STOP_ID = "510"; // Nürnberg Hauptbahnhof
+	const UPDATE_INTERVAL_MS = 30_000; // 30 секунд
+
+	async function loadBuses() {
+	const url =
+    	`https://start.vag.de/dm/api/v1/abfahrten/VGN/${STOP_ID}` +
+    	`?product=Bus&timespan=30&limitcount=10`;
+
+  	const response = await fetch(url);
+
+  	if (!response.ok) {
+  	  throw new Error(`Ошибка API: ${response.status}`);
+  	}
+
+  	const data = await response.json();
+  	renderBuses(data.Abfahrten);
+	}
+
+	function renderBuses(departures) {
+  	const list = document.getElementById("departures");
+  	list.innerHTML = "";
+
+  	departures.forEach((bus) => {
+    	const item = document.createElement("li");
+
+    	const scheduled = new Date(bus.AbfahrtszeitSoll);
+    	const realtime = bus.AbfahrtszeitIst
+      	? new Date(bus.AbfahrtszeitIst)
+      	: scheduled;
+
+    	const minutes = Math.max(
+      	0,
+      	Math.round((realtime - Date.now()) / 60000)
+    	);
+
+    	item.textContent =
+      	`Автобус ${bus.Linienname} → ${bus.Richtungstext} — ` +
+      	`через ${minutes} мин.`;
+
+    	list.appendChild(item);
+  	});
+	}
+
+	// Первая загрузка сразу
+	loadBuses().catch(console.error);
+
+	// Затем обновление каждые 30 секунд
+	const updateTimer = setInterval(() => {
+  	loadBuses().catch(console.error);
+	}, UPDATE_INTERVAL_MS);
+
+	// Остановка обновления при закрытии/уходе со страницы
+	window.addEventListener("beforeunload", () => {
+  	clearInterval(updateTimer);
+	});
+
+</script>
+</body>
+</html>
