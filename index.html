@@ -2,21 +2,72 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Автобусы Нюрнберга</title>
   <style>
-    body { font-family: Arial, sans-serif; }
-    table { border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
-  </style>
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  table {
+    border-collapse: collapse;
+    font-size: 16px;
+  }
+
+  th,
+  td {
+    border: 1px solid #ccc;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  /* Мобильные экраны: до 700 px */
+  @media (max-width: 700px) {
+    body {
+      font-size: 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+    }
+
+    table {
+      font-size: 20px;
+    }
+
+    th,
+    td {
+      padding: 12px 10px;
+    }
+  }
+
+  /* Очень маленькие экраны: до 420 px */
+  @media (max-width: 420px) {
+    body {
+      font-size: 22px;
+    }
+
+    table {
+      font-size: 22px;
+    }
+  }
+</style>
 </head>
 <body>
 
-<h1>Минут до отправления следующего автобуса</h1>
+<h1>Отправление следующего автобуса </h1>
+<h3>Страница обновляется автоматически каждые 30 сек.</h1>
 
 <table>
   <thead>
     <tr>
-      <th>Автобус</th>
+      <th>Номер</th>
       <th>Остановка</th>
       <th>Направление</th>
       <th>Уходит в</th>
