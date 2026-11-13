@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Автобусы Нюрнберга</title>
+  <style>
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  table {
+    border-collapse: collapse;
+    font-size: 16px;
+  }
+
+  th,
+  td {
+    border: 1px solid #ccc;
+    padding: 6px 6px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+	td:last-child {
+    text-align: center;
+	}
+
+  /* Мобильные экраны: до 900 px */
+  @media (max-width: 900px) {
+    body {
+      font-size: 18px;
+    }
+
+    h1 {
+      font-size: 22px;
+    }
+
+h3 {
+      font-size: 18px;
+    }
+
+    table {
+      font-size: 18px;
+    }
+
+    th,
+    td {
+      padding: 6px 6px;
+    }
+  }
+
+   }
+</style>
+</head>
+<body>
+
+<h1>Отправление следующего автобуса </h1>
+<h3>Страница обновляется автоматически каждые 30 сек.</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>№</th>
+      <th>Остановка >> направление</th>
+      <th>Время</th>
+      <th>Минуты</th>
+    </tr>
+  </thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<script>
+const buses = [
+   {
+    line: "47",
+    stopId: "353",
+    stopName: "Tellstraße",
+    direction: "Forchheimer Str."
+  },
+  {
+    line: "47",
+    stopId: "1316",
+    stopName: "Forchheimerstr.",
+    direction: "Rathaus"
+  }
+];
+
+async function getDepartures(bus) {
+  const url =
+    `https://start.vag.de/dm/api/v1/abfahrten/VGN/${bus.stopId}` +
+    `?product=Bus&timespan=90&limitcount=100`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Ошибка API: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  const matchingDepartures = data.Abfahrten
+    .filter((item) =>
+      item.Linienname === bus.line &&
+      item.Richtungstext === bus.direction
+    )
+    .slice(0, 3);
+
+  return matchingDepartures.map((departure) => {
+    const departureTime = new Date(
+      departure.AbfahrtszeitIst || departure.AbfahrtszeitSoll
+    );
+
+    const minutes = Math.max(
+      0,
+      Math.round((departureTime - Date.now()) / 60000)
+    );
+
+    return {
+      line: bus.line,
+      stopName: bus.stopName,
+      direction: bus.direction,
+      time: departureTime.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit"
+      }),
+      minutes
+    };
+  });
+}
+
+
+async function updateTable() {
+  const rows = document.getElementById("rows");
+  rows.innerHTML = "";
+
+  for (const bus of buses) {
+    let departures;
+
+    try {
+      departures = await getDepartures(bus);
+    } catch (error) {
+      console.error(error);
+      continue;
+    }
+
+    if (departures.length === 0) {
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td>${bus.line}</td>
+        <td>${bus.stopName} &gt;&gt; ${bus.direction}</td>
+        <td>Не найдено</td>
+        <td class="minutes">—</td>
+      `;
+
+      rows.appendChild(row);
+      continue;
+    }
+
+    departures.forEach((departure, index) => {
+      const row = document.createElement("tr");
+
+      const time = departure.time;
+      const minutes = departure.minutes;
+
+      row.innerHTML = `
+        <td>${departure.line}</td>
+        <td>${departure.stopName} &gt;&gt; ${departure.direction}</td>
+        <td>${time}</td>
+        <td class="minutes">${minutes}</td>
+      `;
+
+      rows.appendChild(row);
+    });
+  }
+}
+
+updateTable();
+setInterval(updateTable, 30000);
+</script>
+
+</body>
+</html>
