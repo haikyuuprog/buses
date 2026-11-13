@@ -31,8 +31,8 @@
     text-align: center;
 	}
 
-  /* Мобильные экраны: до 900 px */
-  @media (max-width: 900px) {
+  /* Мобильные экраны: до 800 px */
+  @media (max-width: 800px) {
     body {
       font-size: 18px;
     }
@@ -51,7 +51,7 @@ h3 {
 
     th,
     td {
-      padding: 4px 4px;
+      padding: 6px 6px;
     }
   }
 
@@ -77,19 +77,7 @@ h3 {
 
 <script>
 const buses = [
-  {
-    line: "65",
-    stopId: "341",
-    stopName: "Schoppershof",
-    direction: "Röthenbach"
-  },
-  {
-    line: "65",
-    stopId: "365",
-    stopName: "Heinemannbrücke",
-    direction: "Nordostbahnhof"
-  },
-  {
+   {
     line: "37",
     stopId: "353",
     stopName: "Tellstraße",
@@ -109,7 +97,7 @@ const buses = [
   }
 ];
 
-async function getDeparture(bus) {
+async function getDepartures(bus) {
   const url =
     `https://start.vag.de/dm/api/v1/abfahrten/VGN/${bus.stopId}` +
     `?product=Bus&timespan=90&limitcount=100`;
@@ -122,36 +110,34 @@ async function getDeparture(bus) {
 
   const data = await response.json();
 
-  const departure = data.Abfahrten.find((item) =>
-    item.Linienname === bus.line &&
-    item.Richtungstext === bus.direction
-  );
+  const matchingDepartures = data.Abfahrten
+    .filter((item) =>
+      item.Linienname === bus.line &&
+      item.Richtungstext === bus.direction
+    )
+    .slice(0, 2);
 
-  if (!departure) {
+  return matchingDepartures.map((departure) => {
+    const departureTime = new Date(
+      departure.AbfahrtszeitIst || departure.AbfahrtszeitSoll
+    );
+
+    const minutes = Math.max(
+      0,
+      Math.round((departureTime - Date.now()) / 60000)
+    );
+
     return {
-      ...bus,
-      time: "Не найдено",
-      minutes: "—"
+      line: bus.line,
+      stopName: bus.stopName,
+      direction: bus.direction,
+      time: departureTime.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit"
+      }),
+      minutes
     };
-  }
-
-  const departureTime = new Date(
-    departure.AbfahrtszeitIst || departure.AbfahrtszeitSoll
-  );
-
-  const minutes = Math.max(
-    0,
-    Math.round((departureTime - Date.now()) / 60000)
-  );
-
-  return {
-    ...bus,
-    time: departureTime.toLocaleTimeString("de-DE", {
-      hour: "2-digit",
-      minute: "2-digit"
-    }),
-    minutes: minutes
-  };
+  });
 }
 
 async function updateTable() {
@@ -159,18 +145,44 @@ async function updateTable() {
   rows.innerHTML = "";
 
   for (const bus of buses) {
-    const result = await getDeparture(bus);
+    let departures;
 
-    const row = document.createElement("tr");
+    try {
+      departures = await getDepartures(bus);
+    } catch (error) {
+      console.error(error);
+      continue;
+    }
 
-    row.innerHTML = `
-      <td>${result.line}</td>
-      <td>${result.stopName} &gt;&gt; ${result.direction}</td>
-      <td>${result.time}</td>
-      <td>${result.minutes}</td>
-    `;
+    if (departures.length === 0) {
+      const row = document.createElement("tr");
 
-    rows.appendChild(row);
+      row.innerHTML = `
+        <td>${bus.line}</td>
+        <td>${bus.stopName} &gt;&gt; ${bus.direction}</td>
+        <td>Не найдено</td>
+        <td class="minutes">—</td>
+      `;
+
+      rows.appendChild(row);
+      continue;
+    }
+
+    departures.forEach((departure, index) => {
+      const row = document.createElement("tr");
+
+      const time = departure.time;
+      const minutes = departure.minutes;
+
+      row.innerHTML = `
+        <td>${departure.line}</td>
+        <td>${departure.stopName} &gt;&gt; ${departure.direction}</td>
+        <td>${time}</td>
+        <td class="minutes">${minutes}</td>
+      `;
+
+      rows.appendChild(row);
+    });
   }
 }
 
